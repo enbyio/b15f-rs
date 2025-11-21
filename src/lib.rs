@@ -15,8 +15,9 @@
 pub mod b15f;
 mod usart;
 mod request;
-mod error;
+pub mod error;
 mod assert;
 pub mod atmega1284p;
+pub mod dummy;
 
 pub use crate::b15f::B15F;

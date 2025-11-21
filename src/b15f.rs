@@ -25,6 +25,11 @@ macro_rules! log_end {
 	($text: literal) => (println!($text));
 }
 
+pub trait Board {
+	fn get_register(&mut self, register: mcu::DataRegister) -> Result<u8, Error>;
+	fn set_register(&mut self, register: mcu::DataRegister, value: u8) -> Result<(), Error>;
+}
+
 /// Structure representing the driver for the board 15
 pub struct B15F {
 	usart: Box<dyn SerialPort>
@@ -264,26 +269,6 @@ impl B15F {
 		Ok(aw[0].reverse_bits())
 	}
 
-	/// Uses the setMem8 syntax from the cpp library.
-	pub fn set_register(&mut self, register: mcu::DataRegister, val: u8) -> Result<(), Error> {
-		self.usart.clear(serialport::ClearBuffer::Input)?;
-		let addr = register as u8;
-		self.usart.write(build_request![Request::SetMem8, addr & 0xFF, 0, val])?;
-
-		if read_sized::<1>(&mut self.usart)?[0] != B15F::MSG_OK {
-			return Err("Setting register failed".into());
-		}
-		Ok(())
-	}
-
-	/// read register value
-	pub fn get_register(&mut self, register: mcu::DataRegister) -> Result<u8, Error> {
-		self.usart.clear(serialport::ClearBuffer::Input)?;
-		let addr = register as u8;
-		self.usart.write(build_request![Request::GetMem8, addr & 0xFF, 0])?;
-		Ok(read_sized::<1>(&mut self.usart)?[0])
-	}
-
 	/// Yields information about the installed firmware on the B15
 	/// 
 	/// Returns an array of strings, where each string contains a piece
@@ -426,7 +411,7 @@ impl B15F {
 			.map(|item| item.into())
 			.collect()
 	}
-
+	
 	#[cfg(not(target_arch = "arm"))]
 	#[cfg(not(target_arch = "aarch64"))]
 	fn get_devices() -> Vec<String> {
@@ -442,6 +427,28 @@ impl B15F {
 			.split_ascii_whitespace()
 			.map(|item| item.into())
 			.collect()
+	}
+}
+
+impl Board for B15F {
+	/// read register value
+	fn get_register(&mut self, register: mcu::DataRegister) -> Result<u8, Error> {
+		self.usart.clear(serialport::ClearBuffer::Input)?;
+		let addr = register as u8;
+		self.usart.write(build_request![Request::GetMem8, addr & 0xFF, 0])?;
+		Ok(read_sized::<1>(&mut self.usart)?[0])
+	}
+
+	/// Uses the setMem8 syntax from the cpp library.
+	fn set_register(&mut self, register: mcu::DataRegister, val: u8) -> Result<(), Error> {
+		self.usart.clear(serialport::ClearBuffer::Input)?;
+		let addr = register as u8;
+		self.usart.write(build_request![Request::SetMem8, addr & 0xFF, 0, val])?;
+
+		if read_sized::<1>(&mut self.usart)?[0] != B15F::MSG_OK {
+			return Err("Setting register failed".into());
+		}
+		Ok(())
 	}
 }
 
