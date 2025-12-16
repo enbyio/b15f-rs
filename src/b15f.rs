@@ -445,7 +445,7 @@ impl Board for B15F {
 		let addr = register as u8;
 		self.usart.write(build_request![Request::SetMem8, addr & 0xFF, 0, val])?;
 
-		if read_sized::<1>(&mut self.usart)?[0] != B15F::MSG_OK {
+		if read_sized::<1>(&mut self.usart)?[0] != val {
 			return Err("Setting register failed".into());
 		}
 		Ok(())
