@@ -25,14 +25,8 @@ impl Dummy {
 impl Board for Dummy {
     fn get_register(&mut self, register: DataRegister) -> Result<u8, Error> {
         _ = DataRegister::try_from(register).or(Err(Error::new("invalid register")))?;
-        /*let reg = (register as u8 - 0x20)/3;*/
-        let reg = if (register as u8 % 3 == 0) {
-            0
-        } else {
-            1
-        };
         let r = match register as u8 % 3 {
-            2 => Ok(self.registers[reg as usize] & (!self.io_prop[reg as usize])),
+            2 => Ok(self.registers[0] << 4 & (!self.io_prop[0])),
             _ => Err(Error::new(format!("invalid get register: {:?}", register).as_str())),
         };
         if self.log {
@@ -44,14 +38,9 @@ impl Board for Dummy {
 
     fn set_register(&mut self, register: DataRegister, value: u8) -> Result<(), Error> {
         _ = DataRegister::try_from(register).or(Err(Error::new("invalid register")))?;
-        /*let reg = (register as u8 - 0x20)/3;*/
-        let reg = if (register as u8 % 3 == 0) {
-            0
-        } else {
-            1
-        };
+        let reg = (register as u8 - 0x20)/3;
         if self.log {
-            println!("Setting Register: {:?}, as {:08b}", register, reg);
+            println!("Setting Register: {:?}, as {:08b}", register, value);
         }
         match register as u8 % 3 {
             0 => self.io_prop[reg as usize] = value,
@@ -178,5 +167,20 @@ impl SerialPort for Dummy {
 
     fn clear_break(&self) -> serialport::Result<()> {
         Err(serialport::Error::new(serialport::ErrorKind::Unknown, "this is not supposed to be called on a dummy"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::atmega1284p::DataRegister;
+    use crate::b15f::Board;
+    use crate::dummy::Dummy;
+
+    #[test]
+    fn test_reg() {
+        let mut board = Dummy::new(true);
+        board.set_register(DataRegister::DDRA, 0b1111).unwrap();
+        board.set_register(DataRegister::PortA, 0b1101).unwrap();
+        println!("{:08b}", board.get_register(DataRegister::PinA).unwrap());
     }
 }
