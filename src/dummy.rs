@@ -25,7 +25,12 @@ impl Dummy {
 impl Board for Dummy {
     fn get_register(&mut self, register: DataRegister) -> Result<u8, Error> {
         _ = DataRegister::try_from(register).or(Err(Error::new("invalid register")))?;
-        let reg = (register as u8 - 0x20)/3;
+        /*let reg = (register as u8 - 0x20)/3;*/
+        let reg = if (register as u8 % 3 == 0) {
+            0
+        } else {
+            1
+        };
         let r = match register as u8 % 3 {
             2 => Ok(self.registers[reg as usize] & (!self.io_prop[reg as usize])),
             _ => Err(Error::new(format!("invalid get register: {:?}", register).as_str())),
@@ -39,7 +44,12 @@ impl Board for Dummy {
 
     fn set_register(&mut self, register: DataRegister, value: u8) -> Result<(), Error> {
         _ = DataRegister::try_from(register).or(Err(Error::new("invalid register")))?;
-        let reg = (register as u8 - 0x20)/3;
+        /*let reg = (register as u8 - 0x20)/3;*/
+        let reg = if (register as u8 % 3 == 0) {
+            0
+        } else {
+            1
+        };
         if self.log {
             println!("Setting Register: {:?}, as {:08b}", register, reg);
         }
